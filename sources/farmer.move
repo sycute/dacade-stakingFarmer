@@ -82,7 +82,20 @@ module stakingfarmer::farmer {
         };
 
         (farm, cap)
-  }     
+    }   
+    public fun new_account<StakeCoin, RewardCoin>(
+        self: &Farm<StakeCoin, RewardCoin>,
+        ctx: &mut TxContext
+    ): Account<StakeCoin, RewardCoin> {
+        Account {
+        id: object::new(ctx),
+        farm_id: object::id(self),
+        amount: 0,
+        reward_debt: 0
+        }
+    }   
+
+
 
 
 
