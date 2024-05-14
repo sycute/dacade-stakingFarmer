@@ -36,13 +36,12 @@ module stakingfarmer::farmer {
     }
 
     /// create a record by admin
-    public entry fun new_record<C>(_admin: &AdminCap, reward_rate: u64, deci: u64, clk: &Clock, ctx: &mut TxContext) {
-        assert!(deci > 0, EZero);
+    public entry fun new_record<C>( _:&AdminCap, reward_rate: u64, deci: u64, c: &Clock, ctx: &mut TxContext) {
 
         transfer::share_object(Record<C>{
             id: object::new(ctx),
             reward_rate,
-            last_updated: clock::timestamp_ms(clk) / 1000,
+            last_updated: clock::timestamp_ms(c) / 1000,
             r: 0,
             user_r: table::new(ctx),
             user_staked: table::new(ctx),
@@ -53,13 +52,13 @@ module stakingfarmer::farmer {
     }
 
     /// user stake coins and calc rewards
-    public entry fun stake<C>(record: &mut Record<C>, staked_coin: Coin<C>, clk: &Clock, ctx: &mut TxContext) {
+    public entry fun stake<C>(record: &mut Record<C>, coin: Coin<C>, c: &Clock, ctx: &mut TxContext) {
 
-        let mut user_staked = coin::value(&staked_coin) / record.deci;
+        let mut user_staked = coin::value(&coin) / record.deci;
         assert!(user_staked  > 0, ENotEnough);
 
-        let user = tx_context::sender(ctx);
-        let current = clock::timestamp_ms(clk) / 1000;
+        let user = ctx.sender();
+        let current = clock::timestamp_ms(c) / 1000;
 
         let rpt = reward_per_token(record, current);
         let earned_amt = earned(record, rpt, user);
@@ -69,13 +68,12 @@ module stakingfarmer::farmer {
         record.r = rpt;
         table::add(&mut record.user_r, user, rpt);
 
-
         if (table::contains(&record.user_staked, user)) {
             let staked = table::remove(&mut record.user_staked, user);
             user_staked = user_staked + staked;
         };
         table::add(&mut record.user_staked, user, user_staked);
-        balance::join(&mut record.total_staked, coin::into_balance(staked_coin));
+        balance::join(&mut record.total_staked, coin::into_balance(coin));
 
         if (table::contains(&record.rewards, user)) {
             let e = table::remove(&mut record.rewards, user);
