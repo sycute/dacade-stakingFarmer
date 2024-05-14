@@ -108,6 +108,10 @@ module stakingfarmer::farmer {
         clock::timestamp_ms(c) / 1000
     }
 
+    fun calculate_pending_rewards<StakeCoin, RewardCoin>(acc: &Account<StakeCoin, RewardCoin>, stake_factor: u64, accrued_rewards_per_share: u256): u64 {
+        ((((acc.amount as u256) * accrued_rewards_per_share / (stake_factor as u256)) - acc.reward_debt) as u64)
+    }
+
     fun calculate_accrued_rewards_per_share(
         rewards_per_second: u64,
         last_accrued_rewards_per_share: u256,
