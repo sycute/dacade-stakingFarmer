@@ -1,12 +1,16 @@
 module stakingfarmer::farmer {
     use sui::balance::{Self,Balance};
-    use sui::clock::{Self, Clock};
+    use sui::clock::{Self, Clock, timestamp_ms};
     use sui::coin::{Self, Coin};
     use sui::table::{Self, Table};
+    use sui::coin::{CoinMetadata};
+    use sui::math;
 
     // Errors
-    const EZero: u64 = 1;
-    const ENotEnough: u64 = 2;
+    const EInsufficientStakeAmount: u64 = 0;
+    const EAccountHasValue: u64 = 1;
+    const EInvalidStartTime: u64 = 2;
+    const EInvalidAccount: u64 = 3;
 
     public struct FARMER has drop {}
     public struct AdminCap has key {id: UID}
@@ -46,10 +50,50 @@ module stakingfarmer::farmer {
         reward_debt: u256
     }
 
+    public fun new_farm<StakeCoin, RewardCoin>(
+        stake_coin_metadata: &CoinMetadata<StakeCoin>,
+        c: &Clock,
+        rewards_per_second: u64,
+        start_timestamp: u64,
+        ctx: &mut TxContext
+    ): (Farm<StakeCoin, RewardCoin>, FarmCap) {
+        assert!(start_timestamp > clock_timestamp_s(c), EInvalidStartTime);
+        let id_ = object::new(ctx);
+        let inner_ = object::uid_to_inner(&id_);
+
+        let cap_id = object::new(ctx);
+        let cap_inner = object::uid_to_inner(&cap_id);
+
+        let cap = FarmCap {
+            id: cap_id,
+            farm: inner_
+        };
+
+        let farm = Farm {
+          id: id_,
+          start_timestamp,
+          last_reward_timestamp: start_timestamp,
+          rewards_per_second,
+          accrued_rewards_per_share: 0,
+          stake_coin_decimal_factor: math::pow(10, coin::get_decimals(stake_coin_metadata)),
+          owned_by: cap_inner,
+          balance_stake_coin: balance::zero(),
+          balance_reward_coin: balance::zero(),
+        };
+
+        (farm, cap)
+  }     
+
 
 
     fun init(_wtn: FARMER, ctx: &mut TxContext) {
         transfer::transfer(AdminCap{id: object::new(ctx)}, ctx.sender());
+    }
+
+
+    fun clock_timestamp_s(c: &Clock): u64 {
+
+        clock::timestamp_ms(c) / 1000
     }
 
     
