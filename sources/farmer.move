@@ -122,9 +122,51 @@ module stakingfarmer::farmer {
           farm.stake_coin_decimal_factor,
           now - farm.last_reward_timestamp
           )
-    };
-    calculate_pending_rewards(account, farm.stake_coin_decimal_factor, accrued_rewards_per_share)
-  }
+        };
+        calculate_pending_rewards(account, farm.stake_coin_decimal_factor, accrued_rewards_per_share)
+    }
+
+    public fun stake<StakeCoin, RewardCoin>(
+        farm: &mut Farm<StakeCoin, RewardCoin>,
+        account: &mut Account<StakeCoin, RewardCoin>,
+        stake_coin: Coin<StakeCoin>,
+        c: &Clock,
+        ctx: &mut TxContext
+    ): Coin<RewardCoin> {
+        assert!(object::id(farm) == account.farm_id, EInvalidAccount);
+
+        update(farm, clock_timestamp_s(c));
+
+        let stake_amount = coin::value(&stake_coin);
+
+        let mut reward_coin = coin::zero<RewardCoin>(ctx);
+
+        if (account.amount != 0) {
+        let pending_reward = calculate_pending_rewards(
+          account,
+          farm.stake_coin_decimal_factor,
+          farm.accrued_rewards_per_share
+        );
+        let pending_reward = min_u64(pending_reward, farm.balance_reward_coin.value());
+        if (pending_reward != 0) {
+          reward_coin.balance_mut().join(farm.balance_reward_coin.split(pending_reward));
+        }
+        };
+
+        if (stake_amount != 0) {
+          farm.balance_stake_coin.join(stake_coin.into_balance());
+          account.amount = account.amount + stake_amount;
+        } else {
+          stake_coin.destroy_zero()
+        };
+
+        account.reward_debt = calculate_reward_debt(
+          account.amount,
+          farm.stake_coin_decimal_factor,
+          farm.accrued_rewards_per_share
+        );
+        reward_coin
+    }
 
 
 
@@ -185,8 +227,18 @@ module stakingfarmer::farmer {
 
         last_accrued_rewards_per_share + ((reward * stake_factor) / total_staked_token)
     }
+    fun calculate_reward_debt(stake_amount: u64, stake_factor: u64, accrued_rewards_per_share: u256): u256 {
+        let (stake_amount, stake_factor) = (
+          (stake_amount as u256),
+          (stake_factor as u256)
+        );
+        (stake_amount * accrued_rewards_per_share) / stake_factor
+    }
 
     fun min(x: u256, y: u256): u256 {
+        if (x < y) x else y
+    }
+    fun min_u64(x: u64, y: u64): u64 {
         if (x < y) x else y
     }
 
