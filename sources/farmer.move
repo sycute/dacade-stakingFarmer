@@ -105,8 +105,34 @@ module stakingfarmer::farmer {
 
 
     fun clock_timestamp_s(c: &Clock): u64 {
-
         clock::timestamp_ms(c) / 1000
+    }
+
+    fun calculate_accrued_rewards_per_share(
+        rewards_per_second: u64,
+        last_accrued_rewards_per_share: u256,
+        total_staked_token: u64,
+        total_reward_value: u64,
+        stake_factor: u64,
+        timestamp_delta: u64
+    ): u256 {
+
+        let (total_staked_token, total_reward_value, rewards_per_second, stake_factor, timestamp_delta) =
+         (
+          (total_staked_token as u256),
+          (total_reward_value as u256),
+          (rewards_per_second as u256),
+          (stake_factor as u256),
+          (timestamp_delta as u256)
+         );
+
+        let reward = min(total_reward_value, rewards_per_second * timestamp_delta);
+
+        last_accrued_rewards_per_share + ((reward * stake_factor) / total_staked_token)
+    }
+
+    fun min(x: u256, y: u256): u256 {
+        if (x < y) x else y
     }
 
     
