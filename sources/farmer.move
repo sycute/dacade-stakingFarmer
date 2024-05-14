@@ -1,18 +1,17 @@
 module stakingfarmer::farmer {
     use sui::balance::{Self,Balance};
-    use sui::clock::{Self, Clock, timestamp_ms};
+    use sui::clock::{Self, Clock};
     use sui::coin::{Self, Coin};
-    use sui::table::{Self, Table};
     use sui::coin::{CoinMetadata};
     use sui::math;
 
     // Errors
     const EInsufficientStakeAmount: u64 = 0;
-    const EAccountHasValue: u64 = 1;
     const EInvalidStartTime: u64 = 2;
     const EInvalidAccount: u64 = 3;
 
     public struct FARMER has drop {}
+
     public struct AdminCap has key {id: UID}
 
     public struct Farm<phantom StakeCoin, phantom RewardCoin> has key, store {
@@ -86,7 +85,8 @@ module stakingfarmer::farmer {
         };
 
         (farm, cap)
-    }   
+    }  
+     
     public fun new_account<StakeCoin, RewardCoin>(
         self: &Farm<StakeCoin, RewardCoin>,
         ctx: &mut TxContext
@@ -215,12 +215,7 @@ module stakingfarmer::farmer {
         self.balance_reward_coin.join(reward.into_balance());
     }
 
-
-
-
-
-  
-
+    // Private functions
 
     fun clock_timestamp_s(c: &Clock): u64 {
         clock::timestamp_ms(c) / 1000
