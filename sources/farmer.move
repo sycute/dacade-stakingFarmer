@@ -112,6 +112,28 @@ module stakingfarmer::farmer {
         ((((acc.amount as u256) * accrued_rewards_per_share / (stake_factor as u256)) - acc.reward_debt) as u64)
     }
 
+    fun update<StakeCoin, RewardCoin>(farm: &mut Farm<StakeCoin, RewardCoin>, now: u64) {
+        if (farm.last_reward_timestamp >= now || farm.start_timestamp> now) return;
+
+        let total_staked_value = balance::value(&farm.balance_stake_coin);
+
+        let prev_reward_time_stamp = farm.last_reward_timestamp;
+        farm.last_reward_timestamp = now;
+
+        if (total_staked_value == 0) return;
+
+        let total_reward_value = balance::value(&farm.balance_reward_coin);
+
+        farm.accrued_rewards_per_share = calculate_accrued_rewards_per_share(
+          farm.rewards_per_second,
+          farm.accrued_rewards_per_share,
+          total_staked_value,
+          total_reward_value,
+          farm.stake_coin_decimal_factor,
+          now - prev_reward_time_stamp
+        );
+    }
+
     fun calculate_accrued_rewards_per_share(
         rewards_per_second: u64,
         last_accrued_rewards_per_share: u256,
