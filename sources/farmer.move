@@ -168,6 +168,13 @@ module stakingfarmer::farmer {
         reward_coin
     }
 
+    public fun add_rewards<StakeCoin, RewardCoin>(
+        self: &mut Farm<StakeCoin, RewardCoin>, c: &Clock, reward: Coin<RewardCoin>
+    ) {
+        update(self, clock_timestamp_s(c));
+        self.balance_reward_coin.join(reward.into_balance());
+    }
+
 
 
 
