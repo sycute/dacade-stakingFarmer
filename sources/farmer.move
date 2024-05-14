@@ -168,6 +168,46 @@ module stakingfarmer::farmer {
         reward_coin
     }
 
+    public fun unstake<StakeCoin, RewardCoin>(
+        farm: &mut Farm<StakeCoin, RewardCoin>,
+        account: &mut Account<StakeCoin, RewardCoin>,
+        amount: u64,
+        c: &Clock,
+        ctx: &mut TxContext
+    ): (Coin<StakeCoin>, Coin<RewardCoin>) {
+        assert!(object::id(farm) == account.farm_id, EInvalidAccount);
+        update(farm, clock_timestamp_s(c));
+
+        assert!(account.amount >= amount, EInsufficientStakeAmount);
+
+        let pending_reward = calculate_pending_rewards(
+          account,
+          farm.stake_coin_decimal_factor,
+          farm.accrued_rewards_per_share
+        );
+
+        let mut stake_coin = coin::zero<StakeCoin>(ctx);
+        let mut reward_coin = coin::zero<RewardCoin>(ctx);
+
+        if (amount != 0) {
+          account.amount = account.amount - amount;
+          stake_coin.balance_mut().join(farm.balance_stake_coin.split(amount));
+        };
+
+        if (pending_reward != 0) {
+          let pending_reward = min_u64(pending_reward, farm.balance_reward_coin.value());
+          reward_coin.balance_mut().join(farm.balance_reward_coin.split(pending_reward));
+        };
+
+        account.reward_debt = calculate_reward_debt(
+          account.amount,
+          farm.stake_coin_decimal_factor,
+          farm.accrued_rewards_per_share
+        );
+
+        (stake_coin, reward_coin)
+    } 
+
     public fun add_rewards<StakeCoin, RewardCoin>(
         self: &mut Farm<StakeCoin, RewardCoin>, c: &Clock, reward: Coin<RewardCoin>
     ) {
