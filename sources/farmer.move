@@ -50,6 +50,10 @@ module stakingfarmer::farmer {
         reward_debt: u256
     }
 
+    fun init(_wtn: FARMER, ctx: &mut TxContext) {
+        transfer::transfer(AdminCap{id: object::new(ctx)}, ctx.sender());
+    }
+
     public fun new_farm<StakeCoin, RewardCoin>(
         stake_coin_metadata: &CoinMetadata<StakeCoin>,
         c: &Clock,
@@ -95,13 +99,38 @@ module stakingfarmer::farmer {
         }
     }   
 
+    public fun pending_rewards<StakeCoin, RewardCoin>(
+        farm: &Farm<StakeCoin, RewardCoin>,
+        account: &Account<StakeCoin, RewardCoin>,
+        c: &Clock,
+    ): u64 {
+        if (object::id(farm) != account.farm_id) return 0;
+
+        let total_staked_value = balance::value(&farm.balance_stake_coin);
+        let now = clock_timestamp_s(c);
+
+        let cond = total_staked_value == 0 || farm.last_reward_timestamp >= now;
+
+        let accrued_rewards_per_share = if (cond) {
+          farm.accrued_rewards_per_share
+        } else {
+          calculate_accrued_rewards_per_share(
+          farm.rewards_per_second,
+          farm.accrued_rewards_per_share,
+          total_staked_value,
+          balance::value(&farm.balance_reward_coin),
+          farm.stake_coin_decimal_factor,
+          now - farm.last_reward_timestamp
+          )
+    };
+    calculate_pending_rewards(account, farm.stake_coin_decimal_factor, accrued_rewards_per_share)
+  }
 
 
 
 
-    fun init(_wtn: FARMER, ctx: &mut TxContext) {
-        transfer::transfer(AdminCap{id: object::new(ctx)}, ctx.sender());
-    }
+
+  
 
 
     fun clock_timestamp_s(c: &Clock): u64 {
