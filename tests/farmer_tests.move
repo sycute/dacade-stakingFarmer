@@ -22,7 +22,7 @@ module stakingfarmer::farmer_tests {
 
             let start_time = clock::create_for_testing(test_scenario::ctx(&mut sc));
             let admin_cap = test_scenario::take_from_address<AdminCap>(&sc, alice);
-            farmer::new_stake_record<SUI>(&admin_cap,1, 1, &start_time, test_scenario::ctx(&mut sc));
+            farmer::new_record<SUI>(&admin_cap,1, 1, &start_time, test_scenario::ctx(&mut sc));
             clock::share_for_testing(start_time);
             test_scenario::return_to_address(alice, admin_cap);
         };

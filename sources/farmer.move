@@ -38,7 +38,8 @@ module stakingfarmer::farmer {
         transfer::transfer(AdminCap{id: object::new(ctx)}, sender);
     }
 
-    public entry fun new_stake_record<C>(_admin: &AdminCap, reward_rate: u64, deci: u64, clk: &Clock, ctx: &mut TxContext) {
+    /// create a record by admin
+    public entry fun new_record<C>(_admin: &AdminCap, reward_rate: u64, deci: u64, clk: &Clock, ctx: &mut TxContext) {
         assert!(deci > 0, EZero);
 
         transfer::share_object(Record<C>{
