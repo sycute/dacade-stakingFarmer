@@ -2,7 +2,7 @@ module stakingfarmer::farmer {
     use sui::balance::{Self,Balance};
     use sui::clock::{Self, Clock};
     use sui::coin::{Self, Coin};
-    use sui::table;
+    use sui::table::{Self, Table};
 
     // Errors
     const EZero: u64 = 1;
@@ -20,22 +20,19 @@ module stakingfarmer::farmer {
         /// reward_per_token
         r: u64,
         /// address - > reward_per_token
-        user_r: table::Table<address, u64>,
+        user_r: Table<address, u64>,
         /// address - > staked
-        user_staked: table::Table<address, u64>,
+        user_staked: Table<address, u64>,
         /// tatal_staked
         total_staked: Balance<C>,
         /// limit min staked
         deci: u64,
         /// address - > reward
-        rewards: table::Table<address, u64>,
+        rewards: Table<address, u64>,
     }
 
     fun init(_wtn: FARMER, ctx: &mut TxContext) {
-
-        let sender = tx_context::sender(ctx);
-
-        transfer::transfer(AdminCap{id: object::new(ctx)}, sender);
+        transfer::transfer(AdminCap{id: object::new(ctx)}, ctx.sender());
     }
 
     /// create a record by admin
